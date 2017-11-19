@@ -1,46 +1,40 @@
 import World.Position
-import Message.In
 
-object Experiment1 {
-  
-  class Skin(id: Int, pos: Position, toReceive: Option[In] = None, toSend: Option[In] = None) extends Kilobot(id, pos, toReceive, toSend) {
-    
-    def loop(): Kilobot = {
-      log("Looping")
-      new Skin(id, pos)
-    }
+class Skin(log: (String) => Unit) extends Kilobot(log) {
 
-    def receive(msg: Message.In): Kilobot = {
-      log(s"Received --> $msg")
-      new Skin(id, pos)
-    }
-
-    def role(): String = " SKIN"
-
-    def toSend(): Option[Message.Out] = {
-      None
-    }
-    
+  def in(m: KilobotMessage): Kilobot = {
+    // TODO
+    this
   }
   
-  class Plasm(id: Int, pos: Position, toReceive: Option[In] = None, toSend: Option[In] = None) extends Kilobot(id, pos, toReceive, toSend) {
-    
-    def loop(): Kilobot = {
-      log("Looping")
-      new Plasm(id, pos)
-    }
+  def out(): Option[KilobotMessage] = {
+    // TODO
+    None
+  }
 
-    def receive(msg: Message.In): Kilobot = {
-      log(s"Received --> $msg")
-      new Plasm(id, pos)
-    }
-
-    def role(): String = "PLASM"
-
-    def toSend(): Option[Message.Out] = {
-      None
-    }
-    
+  override def loop(): Kilobot = {
+    log("Looping")
+    new Skin(log)
   }
   
 }
+
+class Plasm(log: (String) => Unit) extends Kilobot(log) {
+  
+  def in(m: KilobotMessage): Kilobot = {
+    // TODO
+    this
+  }
+  
+  def out(): Option[KilobotMessage] = {
+    // TODO
+    None
+  }
+  
+  override def loop(): Kilobot = {
+    log("Looping")
+    new Plasm(log)
+  }
+  
+}
+

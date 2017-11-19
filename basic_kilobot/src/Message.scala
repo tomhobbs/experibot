@@ -1,14 +1,8 @@
+import java.util.UUID
 
-class Message {
+
+abstract class Message(val id: Int, val senderId: Int, val recipientIds: Option[Seq[Int]]) {
 	
-}
-
-object Message {
-  
-  type Payload = (Short, Short, Short, Short, Short, Short, Short, Short, Short)
-
-	case class Out(msgType: Short, data: Payload) extends Message
-	
-	case class In(msgType: Short, data:Payload, distance: Double) extends Message
+  def isFor(w: World, r: Robot): Boolean
   
 }
