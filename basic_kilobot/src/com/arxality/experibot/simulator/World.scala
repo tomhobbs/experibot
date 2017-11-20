@@ -1,4 +1,20 @@
+package com.arxality.experibot.simulator
 
+class Position(val x: Int, val y: Int) {
+  override def toString: String = s"(x=$x, y=$y)"
+  
+  def diff(p: Position): Double = {
+    Math.abs(
+      if(x == p.x) y - p.y
+      else if(y == p.y) x - p.x
+      else {
+        val dX = x - p.x
+        val dY = y - p.y
+        Math.sqrt((dX*dX) + (dY*dY))
+      }
+    )
+  }
+}
 
 class World(generation: Int = 0, robots: Seq[Robot]) {
   
@@ -49,21 +65,5 @@ class World(generation: Int = 0, robots: Seq[Robot]) {
 }
 
 object World {
-  
-  case class Position(val x: Int, val y: Int) {
-    override def toString: String = s"(x=$x, y=$y)"
-    
-    def diff(p: Position): Double = {
-      Math.abs(
-        if(x == p.x) y - p.y
-        else if(y == p.y) x - p.x
-        else {
-          val dX = x - p.x
-          val dY = y - p.y
-          Math.sqrt((dX*dX) + (dY*dY))
-        }
-      )
-    }
-  }
   
 }

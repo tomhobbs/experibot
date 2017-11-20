@@ -1,6 +1,7 @@
-//import Message.Out
-//import Message.In
-import World.Position
+package com.arxality.experibot.simulator
+
+import com.arxality.experibot.comms.Postman
+import com.arxality.experibot.comms.Message
 
 /**
  * Abstract because it makes no sense (in the physical world) for a certain
@@ -20,14 +21,10 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def debug(w: World): Unit
 
-  def isInRange(x: Robot): Boolean = {
-    val dist = pos.diff(x.pos)
-    return dist <= Kilobot.COMMS_RANGE
-  }
+  def isInRange(x: Robot): Boolean
   
   def tick(): Robot
   
   def getMessagesToSend(): Option[Seq[Message]]
-
 
 }

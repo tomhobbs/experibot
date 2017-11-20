@@ -1,4 +1,9 @@
-import World.Position
+package com.arxality.experibot.robots.kilobot
+
+import com.arxality.experibot.comms.Message
+import com.arxality.experibot.simulator.World
+import com.arxality.experibot.simulator.Robot
+import com.arxality.experibot.simulator.Position
 
 class DebuggableKilobotMessage(override val id: Int,  
                                override val senderId: Int,  
@@ -17,25 +22,18 @@ class DebuggableKilobotMessage(override val id: Int,
   
 }
 
-case class KilobotMessage(msgType: Short, data: Array[Short])
-
-abstract class Kilobot(log: (String) => Unit) {
-  def in(m: KilobotMessage): Kilobot;
-  def out(): Option[KilobotMessage]
-  def loop(): Kilobot;
-}
-
-object Kilobot {
-  val COMMS_RANGE = 1;
-}
-
-class DebugableKilobot(val role: String, 
+class DebugableKilobot(val role: String = "Kilobot", 
                        id: Int, 
                        pos:Position, 
                        toReceive: Option[DebuggableKilobotMessage] = None, 
                        toSend: Option[DebuggableKilobotMessage] = None) 
                        extends Robot(id, pos) {
   
+  override def isInRange(x: Robot): Boolean = {
+    val dist = pos.diff(x.pos)
+    return dist <= Kilobot.COMMS_RANGE
+  }
+   
   def loop(): DebugableKilobot = {
     // TODO
     this
@@ -52,7 +50,7 @@ class DebugableKilobot(val role: String,
      None
   }
       
-  def deliver[T <: Message](msgs: Seq[T]): (DeliveryResponse, Robot) = {
+  def deliver[T <: Message](msgs: Seq[T]): (Boolean, Robot) = {
     // TODO - Choose a message, and deliver it (or decide delivery failed)
     (false, this)
   }
@@ -66,6 +64,3 @@ class DebugableKilobot(val role: String,
     toSend.map(m => Seq(m)) // Kilobots can only send one message at a time
   }
 }
-
-
-
