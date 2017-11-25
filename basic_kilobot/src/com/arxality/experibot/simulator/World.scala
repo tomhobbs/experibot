@@ -29,7 +29,7 @@ class World(generation: Int = 0, robots: Seq[Robot]) {
     this
   }
   
-  def debug(xs: Seq[(Boolean, Robot)]): Unit = {
+  def debug(xs: Seq[Robot]): Unit = {
     
   }
   
@@ -51,11 +51,13 @@ class World(generation: Int = 0, robots: Seq[Robot]) {
     
     val nextGen = robots.map(r => {
       val msgs = toDeliver.filter(m => m.isFor(this, r))
-      r.tick().deliver(msgs)
+      val delivered = r.tick().deliver(this, msgs)
+      val msgIds = msgs.map(_.id)
+      r.delivered(delivered._1, msgIds)
     })
     
     debug(nextGen)
-    new World((generation+1), nextGen.map( _._2 ))
+    new World((generation+1), nextGen)
   }
 
   def findRobot(id: Int): Option[Robot] = {

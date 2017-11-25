@@ -27,4 +27,6 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def getMessagesToSend(): Option[Seq[Message]]
 
+  def delivered(success: Boolean, msgIds: Seq[Int]): Robot
+
 }
