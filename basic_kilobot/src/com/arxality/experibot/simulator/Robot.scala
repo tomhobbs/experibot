@@ -13,6 +13,8 @@ import com.arxality.experibot.comms.Message
  */
 abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
+  def init(): Robot
+  
   def role(): String
   
   def log(msg: String) = {
@@ -25,8 +27,10 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def tick(): Robot
   
-  def getMessagesToSend(): Option[Seq[Message]]
+  def hasMessageToSend(): Boolean
+  
+  def getMessagesToSend(world: World): Seq[Message]
 
-  def delivered(success: Boolean, msgIds: Seq[Int]): Robot
+  def delivered(success: Boolean, msgId: Int): Robot
 
 }

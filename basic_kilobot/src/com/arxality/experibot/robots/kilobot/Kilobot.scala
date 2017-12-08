@@ -7,23 +7,28 @@ import com.arxality.experibot.simulator.Position
 
 object Kilobot {
   val COMMS_RANGE = 1;
+  
+  val rand = scala.util.Random
+  
+  def rand_soft(): Short = {
+    rand.nextInt(255).toShort
+  }
 }
 
-case class KilobotMessage(msgType: Short, data: Array[Short])
+case class KilobotMessage(msgType: Short, data: Option[Array[Short]])
 
-class RGB(red: Short, green:Short, blue: Short)
+case class RGB(red: Short, green:Short, blue: Short)
 
 abstract class Kilobot(log: (String) => Unit) {
+  def setup(): Kilobot = {
+    this
+  }
+  
   def in(m: KilobotMessage, dist: Double): Kilobot;
   def out(): Option[KilobotMessage]
   def loop(): Kilobot;
   def setColour(colour: RGB): Kilobot;
   def transmissionSuccess(): Kilobot;
+  
 }
-
-
-
-
-
-
 

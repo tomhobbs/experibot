@@ -5,6 +5,6 @@ import com.arxality.experibot.simulator.World
 
 trait Postman {
   
-  def deliver(world: World, msgs: Seq[Message]): (Boolean, Robot)
+  def deliver(world: World, msgs: Message): (Boolean, Robot)
   
 }

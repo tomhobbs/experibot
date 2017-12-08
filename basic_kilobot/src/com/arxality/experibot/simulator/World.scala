@@ -1,5 +1,12 @@
 package com.arxality.experibot.simulator
 
+import com.arxality.experibot.comms.Message
+import com.arxality.experibot.comms.DeliveryManifest
+import com.arxality.experibot.comms.DeliveryResponse
+import scala.collection.mutable.HashMap
+import com.arxality.experibot.comms.MessageDeliveryCollector
+import com.arxality.experibot.comms.CommsChecker
+
 class Position(val x: Int, val y: Int) {
   override def toString: String = s"(x=$x, y=$y)"
   
@@ -16,7 +23,17 @@ class Position(val x: Int, val y: Int) {
   }
 }
 
-class World(generation: Int = 0, robots: Seq[Robot]) {
+
+class World(generation: Int = 0, robots: Seq[Robot]) 
+    extends MessageDeliveryCollector with CommsChecker with RobotService
+{//, toDeliver: Option[Seq[Message]] = None) {
+  
+  import scala.util.Random
+  
+  def init(): World = {
+    val ready = Random.shuffle(robots).map(_.init)
+    new World(generation, ready)
+  }
   
   def debug(): World = {
     println(s"-- DEBUG WORLD (Gen: $generation) --")
@@ -33,37 +50,86 @@ class World(generation: Int = 0, robots: Seq[Robot]) {
     
   }
   
-  def inCommsRange(r: Robot): Seq[Robot] = {
-    robots.filter { x => r.id != x.id && r.isInRange(x) }
+  def findRobots(f: (Robot => Boolean)): Seq[Robot] = {
+    streamRobots().filter(f)
   }
   
-  /**
-   * Tick/Heatbeat approach is to;
-   * 1. Gather all the messages that need transmitting
-   * 2. Cause all the robots to tick/loop
-   * 3. Deliver all the messages
-   * 
-   * 2. and 3. could be swapped around, if so desired.  The choice to put them
-   * this way around was made arbitrarily.
-   */
+  
   def tick(): World = {
-    val toDeliver = robots.map(r => r.getMessagesToSend()).flatten.flatten
+    val updated = deliverMessages()
+    val updatedIds = updated.map(_.id)
+    val notUpdated = findRobots(r => { !updatedIds.contains(r.id) })
     
-    val nextGen = robots.map(r => {
-      val msgs = toDeliver.filter(m => m.isFor(this, r))
-      val delivered = r.tick().deliver(this, msgs)
-      val msgIds = msgs.map(_.id)
-      r.delivered(delivered._1, msgIds)
-    })
+    val all = updated ++ notUpdated
+    val nextGen = all.map(_.tick)
     
-    debug(nextGen)
     new World((generation+1), nextGen)
   }
 
   def findRobot(id: Int): Option[Robot] = {
     robots.find(r => id == r.id)
   }
-  
+
+  def mapRobots[T](f: (Robot => T)): Seq[T] = {
+    ???
+  }
+
+  //TODO actually stream (and randomise?)
+  def streamRobots(): Seq[Robot] = {
+    robots
+  }
+
+  /*
+   * Returns all Robots that have either send messages or received them (or both)
+   */
+  def deliverMessages(): Seq[Robot] = {
+    // TODO Replace with actual streams that wont blow the memory for large worlds
+    streamRobots()
+      .filter(_.hasMessageToSend)
+      .map(r => {
+        
+        def lookup(cache: Map[Int,Robot], id: Int): Option[Robot] = {
+          cache.get(id).orElse(findRobot(id))
+        }
+        
+        val deliveryManifests = r.getMessagesToSend(this)
+          .map(msg => {
+            collectDeliveryManifests(msg)
+          })
+          .flatten.flatten
+          
+        val deliveryResponses = deliveryManifests
+          .foldLeft((Map[Int,Robot](),Seq[DeliveryResponse]()))((acc,dm) => {
+            val recipient = lookup(acc._1, dm.recipient)
+            recipient.map(r => {
+              val raw = r.deliver(this, dm.msg)
+              val dr = DeliveryResponse(dm, raw._1)
+              
+              /*
+               * We keep changing and replace the state of the robots we've
+               * already found and continue to evolve them as they receive
+               * more messages
+               */
+              val acc2 = acc._1 + (r.id -> r)
+              (acc2, acc._2 :+ dr)
+            }).getOrElse(acc)
+          })
+          
+        val cache = deliveryResponses._1
+        val resps = deliveryResponses._2
+        
+        val deliveryRecipts = resps.foldLeft(cache)((acc,dr) => {
+          val sender = lookup(acc, dr.manifest.sender)
+          sender.map(r => {
+            val updated = r.delivered(dr.success, dr.manifest.msg.id)
+            acc + (r.id -> updated)
+          }).getOrElse(acc)
+        })
+        
+        return deliveryRecipts.values.toSeq
+      })
+  }
+    
 }
 
 object World {
