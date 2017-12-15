@@ -67,7 +67,7 @@ class DebugableKilobot(val role: String,
   override def tick: DebugableKilobot = {
     // TODO - support movement!
     val next = kilobot.loop()
-    log(s"TICK ==> $next")
+//    log(s"TICK ==> $next")
     new DebugableKilobot(role, id, pos, next)
   }
   
@@ -107,7 +107,7 @@ class DebugableKilobot(val role: String,
   }
   
   override def getMessagesToSend(world: World): Seq[Message] = {
-    log(s"MSG OUT => ${kilobot.out()}")
+//    log(s"MSG OUT => ${kilobot.out()}")
     
     // Kilobots can only send one message at a time and only broadcast
     kilobot.out()

@@ -101,16 +101,19 @@ class World(generation: Int = 0, robots: Seq[Robot])
         val deliveryResponses = deliveryManifests
           .foldLeft((Map[Int,Robot](),Seq[DeliveryResponse]()))((acc,dm) => {
             val recipient = lookup(acc._1, dm.recipient)
+//            println(s"Delivering to $recipient")
             recipient.map(r => {
               val raw = r.deliver(this, dm.msg)
               val dr = DeliveryResponse(dm, raw._1)
+              
+//              println(s"Delivery response>> ${dr}");
               
               /*
                * We keep changing and replace the state of the robots we've
                * already found and continue to evolve them as they receive
                * more messages
                */
-              val acc2 = acc._1 + (r.id -> r)
+              val acc2 = acc._1 + (r.id -> raw._2)
               (acc2, acc._2 :+ dr)
             }).getOrElse(acc)
           })
