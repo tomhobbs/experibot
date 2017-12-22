@@ -19,7 +19,7 @@ case class KilobotMessage(msgType: Short, data: Option[Array[Short]])
 
 case class RGB(red: Short, green:Short, blue: Short)
 
-abstract class Kilobot(log: (String) => Unit) {
+abstract class Kilobot {
   def setup(): Kilobot = {
     this
   }

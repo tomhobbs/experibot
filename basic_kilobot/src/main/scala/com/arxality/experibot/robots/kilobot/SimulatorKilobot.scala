@@ -4,6 +4,7 @@ import com.arxality.experibot.simulator.World
 import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.comms.Message
+import com.typesafe.scalalogging.LazyLogging
 
 class DebuggableKilobotMessage(override val id: Int,  
                                override val senderId: Int,  
@@ -25,26 +26,16 @@ class DebuggableKilobotMessage(override val id: Int,
   }
 }
 
-object DebugableKilobot {
-  def wrap(id: Int, log: (String) => Unit): (String) => Unit = {
-    (msg: String) => {
-      log(s"[$id]\t$msg")
-    }
-  }
-}
-
 class DebugableKilobot(val role: String,    
                        id: Int,   
                        pos: Position,   
                        kilobot: Kilobot) 
-                       extends Robot(id, pos) {
+                       extends Robot(id, pos) with LazyLogging {
   
   def this(role: String = "Kilobot", 
            id: Int,
            pos: Position,
-           botBuilder: ((String) => Unit) => Kilobot,
-           log: (String) => Unit) 
-           = this(role, id, pos, botBuilder(DebugableKilobot.wrap(id, log)))
+           botBuilder: () => Kilobot) = this(role, id, pos, botBuilder())
 
   def init(): DebugableKilobot = {
     val ready = kilobot.setup()
@@ -70,12 +61,11 @@ class DebugableKilobot(val role: String,
 //    log(s"TICK ==> $next")
     new DebugableKilobot(role, id, pos, next)
   }
-  
-  def debug(w: World): Unit = {
-//    val inMyRange = w.inCommsRange(this).map { x => x.id }
-//    log(s"$pos  In range of: $inMyRange")
-  }
 
+  override def debug(w: World): Unit = {
+    logger.debug(s"[$id] [$role] $kilobot")
+  }
+  
   def toSend(): Option[DebuggableKilobotMessage] = {
      kilobot.out().map(m => new DebuggableKilobotMessage(nextMsgId(), id, None, m.msgType, m.data))
   }

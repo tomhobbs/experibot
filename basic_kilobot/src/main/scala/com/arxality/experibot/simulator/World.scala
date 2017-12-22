@@ -7,6 +7,8 @@ import scala.collection.mutable.HashMap
 import com.arxality.experibot.comms.MessageDeliveryCollector
 import com.arxality.experibot.comms.CommsChecker
 
+import com.typesafe.scalalogging.LazyLogging
+
 class Position(val x: Int, val y: Int) {
   override def toString: String = s"(x=$x, y=$y)"
   
@@ -25,7 +27,7 @@ class Position(val x: Int, val y: Int) {
 
 
 class World(generation: Int = 0, robots: Seq[Robot]) 
-    extends MessageDeliveryCollector with CommsChecker with RobotService
+    extends MessageDeliveryCollector with CommsChecker with RobotService with LazyLogging
 {//, toDeliver: Option[Seq[Message]] = None) {
   
   import scala.util.Random
@@ -36,24 +38,19 @@ class World(generation: Int = 0, robots: Seq[Robot])
   }
   
   def debug(): World = {
-    println(s"-- DEBUG WORLD (Gen: $generation) --")
-    println(s"Num Robots: ${robots.length}")
+    logger.debug(s"-- DEBUG WORLD (Gen: $generation) --")
+    logger.debug(s"Num Robots: ${robots.length}")
     
     robots.foreach { _.debug(this) }
     
-    println(s"-----------------")
+    logger.debug(s"-----------------")
     
     this
-  }
-  
-  def debug(xs: Seq[Robot]): Unit = {
-    
   }
   
   def findRobots(f: (Robot => Boolean)): Seq[Robot] = {
     streamRobots().filter(f)
   }
-  
   
   def tick(): World = {
     val updated = deliverMessages()
@@ -101,12 +98,9 @@ class World(generation: Int = 0, robots: Seq[Robot])
         val deliveryResponses = deliveryManifests
           .foldLeft((Map[Int,Robot](),Seq[DeliveryResponse]()))((acc,dm) => {
             val recipient = lookup(acc._1, dm.recipient)
-//            println(s"Delivering to $recipient")
             recipient.map(r => {
               val raw = r.deliver(this, dm.msg)
               val dr = DeliveryResponse(dm, raw._1)
-              
-//              println(s"Delivery response>> ${dr}");
               
               /*
                * We keep changing and replace the state of the robots we've
@@ -133,8 +127,4 @@ class World(generation: Int = 0, robots: Seq[Robot])
       })
   }
     
-}
-
-object World {
-  
 }

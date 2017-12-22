@@ -17,10 +17,6 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def role(): String
   
-  def log(msg: String) = {
-    println(s"[$id]   [$role]   $msg");
-  }
-  
   def debug(w: World): Unit
 
   def isInRange(x: Robot): Boolean
