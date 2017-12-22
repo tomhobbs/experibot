@@ -5,6 +5,9 @@ import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.comms.Message
 import com.typesafe.scalalogging.LazyLogging
+import org.slf4j.MDC
+
+import com.arxality.experibot.simulator.World.checkpoint
 
 class DebuggableKilobotMessage(override val id: Int,  
                                override val senderId: Int,  
@@ -37,9 +40,16 @@ class DebugableKilobot(val role: String,
            pos: Position,
            botBuilder: () => Kilobot) = this(role, id, pos, botBuilder())
 
+  def appendData(log: java.util.Map[String,Any]): Unit = {
+    log.put("position", pos.loggableValue())
+    kilobot.loggableValue(log)
+  }
+           
   def init(): DebugableKilobot = {
     val ready = kilobot.setup()
-    new DebugableKilobot(role, id, pos, ready)
+    MDC.put("robot_id", id.toString)
+    MDC.put("robot_role", role)
+    checkpoint("init", new DebugableKilobot(role, id, pos, ready))
   }
   
   def copyWith(kb: Kilobot): DebugableKilobot = {
@@ -59,7 +69,7 @@ class DebugableKilobot(val role: String,
     // TODO - support movement!
     val next = kilobot.loop()
 //    log(s"TICK ==> $next")
-    new DebugableKilobot(role, id, pos, next)
+    checkpoint("tick", new DebugableKilobot(role, id, pos, next))
   }
 
   override def debug(w: World): Unit = {
@@ -83,13 +93,13 @@ class DebugableKilobot(val role: String,
       sender.map(r => {
         val dist = pos.diff(r.pos)
         val kb = kilobot.in(m.toRaw(), dist)
-        (true, copyWith(kb))
+        (true, checkpoint("msg_in", copyWith(kb)))
       })
     }).flatten.getOrElse( (false, this) ) 
   }
   
   def delivered(success: Boolean, msgIds: Int): DebugableKilobot = {
-    new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
+    checkpoint("delivered", new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess()))
   }
   
   override def hasMessageToSend(): Boolean = {
@@ -110,7 +120,7 @@ class DebugableKilobot(val role: String,
   }
 
   def delivered(success: Boolean, msgIds: Seq[Int]): Robot = {
-                         this
+                         checkpoint("delivered", this)
                        }
 
 }

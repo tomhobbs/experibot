@@ -2,6 +2,7 @@ package com.arxality.experibot.simulator
 
 import com.arxality.experibot.comms.Postman
 import com.arxality.experibot.comms.Message
+import org.slf4j.MDC
 
 /**
  * Abstract because it makes no sense (in the physical world) for a certain
@@ -28,5 +29,7 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   def getMessagesToSend(world: World): Seq[Message]
 
   def delivered(success: Boolean, msgId: Int): Robot
-
+  
+  def appendData(log: java.util.Map[String,Any]): Unit
+  
 }

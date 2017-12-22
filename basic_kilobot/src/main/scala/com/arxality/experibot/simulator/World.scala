@@ -23,6 +23,13 @@ class Position(val x: Int, val y: Int) {
       }
     )
   }
+  
+  def loggableValue(): java.util.Map[String, Number] = {
+    val map = new java.util.HashMap[String, Number]()
+    map.put("x", x);
+    map.put("y", y);
+    return map
+  }
 }
 
 
@@ -127,4 +134,13 @@ class World(generation: Int = 0, robots: Seq[Robot])
       })
   }
     
+}
+
+object World extends LazyLogging {
+  
+  def checkpoint[R <: Robot](stage: String, r: R): R = {
+    logger.info(stage, r)
+    r
+  }
+  
 }

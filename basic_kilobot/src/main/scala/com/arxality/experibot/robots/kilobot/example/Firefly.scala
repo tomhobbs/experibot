@@ -21,6 +21,16 @@ class ColourMemory(val red: (Short,Short,Short),
   
   def this() = this((0,0,0), (0,0,0), (0,0,0))
   
+  def loggableValue(log: java.util.Map[String, Any]): Unit  = {
+    val map = new java.util.HashMap[String,Any]()
+    
+    map.put("red", Seq(red._1, red._2, red._3))
+    map.put("green", Seq(green._1, green._2, green._3))
+    map.put("blue", Seq(blue._1, blue._2, blue._3))
+    
+    log.put("memory", map)
+  }
+  
   def remember(c: RGB): ColourMemory = {
     
     def shortInc(a: Int): Short = (a + 1).toShort
@@ -58,13 +68,30 @@ class Firefly(val me: Short,
     new Firefly(me, colour, None, None, false, false, 0, true)
   }
   
+  def loggableValue(log: java.util.Map[String, Any]): Unit  = {
+    toSend.map(m => {
+      log.put("toSend", m.loggableValue())
+    })
+    
+    received.map(m => {
+      log.put("received", m.loggableValue())
+    })
+    
+    log.put("light_on", light_on)
+    log.put("transmission_success", transmission_success)
+    log.put("ticks", ticks)
+    
+    colour.loggableValue(log)
+    memory.loggableValue(log);
+  }
+  
   def in(m: KilobotMessage, dist: Double): Kilobot = {
     new Firefly(me, colour, toSend, Some(m), transmission_success, light_on, ticks, setupComplete, memory)
   }
 
   def loop(): Kilobot = {
     if(!setupComplete) {
-      logger.debug("loop is called without setup being complete")
+      logger.error("loop is called without setup being complete")
       this
     } else {
       

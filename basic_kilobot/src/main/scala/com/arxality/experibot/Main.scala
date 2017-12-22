@@ -5,14 +5,12 @@ import com.arxality.experibot.robots.kilobot.DebugableKilobot
 import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.robots.kilobot.example.Firefly
 import com.arxality.experibot.robots.kilobot.Kilobot
+import com.typesafe.scalalogging.LazyLogging
+import org.slf4j.MDC
 
-object Main extends App {
-  
-  def log(s: String) {
-    println(s);
-  }
+object Main extends App with LazyLogging {
     
-  println("Starting")
+  logger.info("Starting")
   
   def botBuilder(): Kilobot = {
     new Firefly()
@@ -55,7 +53,7 @@ object Main extends App {
       )
   
   val now = System.currentTimeMillis()
-  val stopAt = now + (500)
+  val stopAt = now + (50)
   
   
   var w2 = world.init()
@@ -65,6 +63,6 @@ object Main extends App {
   
 //  world.init().tick().tick().tick()
   
-  println("Stopped")
+  logger.info("Stopped")
   
 }
