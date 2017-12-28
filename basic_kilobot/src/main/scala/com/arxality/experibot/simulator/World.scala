@@ -8,9 +8,17 @@ import com.arxality.experibot.comms.MessageDeliveryCollector
 import com.arxality.experibot.comms.CommsChecker
 
 import com.typesafe.scalalogging.LazyLogging
+import com.arxality.experibot.logging.Loggable
+import org.bson.Document
 
-class Position(val x: Int, val y: Int) {
+class Position(val x: Int, val y: Int) extends Loggable {
   override def toString: String = s"(x=$x, y=$y)"
+  
+  override def toDocument(): Document = {
+    new Document()
+         .append("x", x)
+         .append("y", y)
+  }
   
   def diff(p: Position): Double = {
     Math.abs(
@@ -24,12 +32,6 @@ class Position(val x: Int, val y: Int) {
     )
   }
   
-  def loggableValue(): java.util.Map[String, Number] = {
-    val map = new java.util.HashMap[String, Number]()
-    map.put("x", x);
-    map.put("y", y);
-    return map
-  }
 }
 
 
@@ -138,9 +140,9 @@ class World(generation: Int = 0, robots: Seq[Robot])
 
 object World extends LazyLogging {
   
-  def checkpoint[R <: Robot](stage: String, r: R): R = {
-    logger.info(stage, r)
-    r
-  }
-  
+//  def checkpoint[R <: Robot](stage: String, r: R): R = {
+//    logger.info(stage, r)
+//    r
+//  }
+      
 }

@@ -5,6 +5,8 @@ import com.arxality.experibot.robots.kilobot.KilobotMessage
 import com.arxality.experibot.robots.kilobot.RGB
 import java.util.regex.Pattern.LazyLoop
 import com.typesafe.scalalogging.LazyLogging
+import org.bson.Document
+import com.arxality.experibot.logging.Loggable
 
 object FireflyMessage {
   val FLASH: Short = 20
@@ -17,19 +19,9 @@ object FireflyMessage {
 
 class ColourMemory(val red: (Short,Short,Short), 
                    val green: (Short,Short,Short), 
-                   val blue: (Short,Short,Short)) {
+                   val blue: (Short,Short,Short)) extends Loggable {
   
   def this() = this((0,0,0), (0,0,0), (0,0,0))
-  
-  def loggableValue(log: java.util.Map[String, Any]): Unit  = {
-    val map = new java.util.HashMap[String,Any]()
-    
-    map.put("red", Seq(red._1, red._2, red._3))
-    map.put("green", Seq(green._1, green._2, green._3))
-    map.put("blue", Seq(blue._1, blue._2, blue._3))
-    
-    log.put("memory", map)
-  }
   
   def remember(c: RGB): ColourMemory = {
     
@@ -47,6 +39,13 @@ class ColourMemory(val red: (Short,Short,Short),
     
     new ColourMemory(r,g,b)
   }
+  
+  override def toDocument(): Document = {
+    new Document()
+      .append("red", red)
+      .append("green", green)
+      .append("blue", blue)
+  }
 }
 
 class Firefly(val me: Short, 
@@ -57,7 +56,7 @@ class Firefly(val me: Short,
               val light_on: Boolean = false,
               val ticks: Int = 0,
               val setupComplete: Boolean = false,
-              val memory: ColourMemory = new ColourMemory()) extends Kilobot with LazyLogging { 
+              val memory: ColourMemory = new ColourMemory()) extends Kilobot with LazyLogging with Loggable { 
   
   def this() = this(0, RGB(0,0,0))
   
@@ -68,21 +67,27 @@ class Firefly(val me: Short,
     new Firefly(me, colour, None, None, false, false, 0, true)
   }
   
-  def loggableValue(log: java.util.Map[String, Any]): Unit  = {
-    toSend.map(m => {
-      log.put("toSend", m.loggableValue())
-    })
+  override def toDocument(): Document  = {
     
-    received.map(m => {
-      log.put("received", m.loggableValue())
-    })
+    val doc = (toSend, received) match {
+      case (Some(out), Some(in)) => {
+        new Document()
+          .append("msg_in", in.toDocument())
+          .append("msg_out", out.toDocument())
+      }
+      case (None, Some(in)) => new Document("msg_in", in.toDocument())
+      case (Some(out), None) => new Document("msg_out", out.toDocument())
+      case (None, None) => new Document()
+    }
     
-    log.put("light_on", light_on)
-    log.put("transmission_success", transmission_success)
-    log.put("ticks", ticks)
-    
-    colour.loggableValue(log)
-    memory.loggableValue(log);
+    doc
+      .append("colour", colour.toDocument())
+      .append("transmission_success", transmission_success)
+      .append("light_on", light_on)
+      .append("ticks", ticks)
+      .append("setupComplete", setupComplete)
+      .append("memory", memory.toDocument())
+
   }
   
   def in(m: KilobotMessage, dist: Double): Kilobot = {
@@ -158,7 +163,7 @@ class Firefly(val me: Short,
     new RGB(r,g,b)
   }
   
-  def toRGB(data: Option[Array[Short]]): RGB = {
+  def toRGB(data: Option[Seq[Short]]): RGB = {
     data.map(xs => {
       val r = xs(0)
       val g = xs(1)

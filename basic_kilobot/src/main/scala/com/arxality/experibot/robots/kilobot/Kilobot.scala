@@ -4,6 +4,8 @@ import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.comms.Message
 import com.arxality.experibot.simulator.World
 import com.arxality.experibot.simulator.Position
+import com.arxality.experibot.logging.Loggable
+import org.bson.Document
 
 object Kilobot {
   val COMMS_RANGE = 1;
@@ -15,36 +17,34 @@ object Kilobot {
   }
 }
 
-case class KilobotMessage(msgType: Short, data: Option[Array[Short]]) {
-  def loggableValue(): java.util.Map[String,Any] = {
-    val map = new java.util.HashMap[String,Any]();
-    map.put("type", msgType)
-    data.map(d => { map.put("data", d.toSeq) })
-    return map
+case class KilobotMessage(msgType: Short, data: Option[Seq[Short]]) extends Loggable {
+
+  override def toDocument(): Document = {
+    val doc = data.map(d => new Document("data", d)).getOrElse(new Document())
+    doc.append("type", msgType)
   }
 }
 
-case class RGB(red: Short, green:Short, blue: Short) {
-  def loggableValue(log: java.util.Map[String, Any]): Unit  = {
-    val map = new java.util.HashMap[String, Short]()
-    map.put("r", red)
-    map.put("g", green)
-    map.put("b", blue)
-    log.put("colour", map)
+case class RGB(red: Short, green:Short, blue: Short) extends Loggable {
+  override def toDocument(): Document  = {
+    new Document()
+        .append("r", red)
+        .append("g", green)
+        .append("b", blue)
   }
 }
 
-abstract class Kilobot {
+abstract class Kilobot extends Loggable {
   
   def setup(): Kilobot = {
     this
   }
   
-  def in(m: KilobotMessage, dist: Double): Kilobot;
+  def in(m: KilobotMessage, dist: Double): Kilobot
   def out(): Option[KilobotMessage]
-  def loop(): Kilobot;
-  def setColour(colour: RGB): Kilobot;
-  def transmissionSuccess(): Kilobot;
-  def loggableValue(log: java.util.Map[String, Any])
+  def loop(): Kilobot
+  def setColour(colour: RGB): Kilobot
+  def transmissionSuccess(): Kilobot
+  
 }
 

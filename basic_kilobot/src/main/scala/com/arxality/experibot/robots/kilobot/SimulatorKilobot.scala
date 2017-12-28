@@ -7,13 +7,35 @@ import com.arxality.experibot.comms.Message
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.MDC
 
-import com.arxality.experibot.simulator.World.checkpoint
+import com.arxality.experibot.logging.Loggable
+import org.bson.Document
 
 class DebuggableKilobotMessage(override val id: Int,  
                                override val senderId: Int,  
                                override val recipientIds: Option[Seq[Int]],  // For Kilobots this will always be None, since that isn't how KB comms works
                                msgType: Short,  
-                               data: Option[Array[Short]]) extends Message(id, senderId, None) {
+                               data: Option[Seq[Short]]) extends Message(id, senderId, None) with Loggable {
+  
+  override def toDocument(): Document = {
+    val doc = new Document()
+                .append("msg_id", id)
+                .append("sender_id", senderId)
+                .append("msg_type", msgType)
+    
+    (recipientIds, data) match {
+      case (Some(rIds), Some(bytes)) => {
+        doc.append("recipient_ids", rIds).append("data", bytes)
+      }
+      case (_, Some(bytes)) => {
+        doc.append("data", bytes)
+      }
+      case (Some(rIds), _) => {
+        doc.append("recipient_ids",rIds)
+      }
+      case (None, None) => doc
+    }
+    
+  }
   
   /*
    * Kilobots just use broadcast, so find everything within comms range and
@@ -33,23 +55,24 @@ class DebugableKilobot(val role: String,
                        id: Int,   
                        pos: Position,   
                        kilobot: Kilobot) 
-                       extends Robot(id, pos) with LazyLogging {
+                       extends Robot(id, pos) with LazyLogging with Loggable {
   
   def this(role: String = "Kilobot", 
            id: Int,
            pos: Position,
            botBuilder: () => Kilobot) = this(role, id, pos, botBuilder())
 
-  def appendData(log: java.util.Map[String,Any]): Unit = {
-    log.put("position", pos.loggableValue())
-    kilobot.loggableValue(log)
+  override def toDocument(): Document = {
+    new Document()
+            .append("robot_id", id)
+            .append("pos", pos.toDocument())
+            .append("robot_role", role)
+            .append("robot", kilobot.toDocument())
   }
            
   def init(): DebugableKilobot = {
     val ready = kilobot.setup()
-    MDC.put("robot_id", id.toString)
-    MDC.put("robot_role", role)
-    checkpoint("init", new DebugableKilobot(role, id, pos, ready))
+    new DebugableKilobot(role, id, pos, ready)
   }
   
   def copyWith(kb: Kilobot): DebugableKilobot = {
@@ -67,9 +90,9 @@ class DebugableKilobot(val role: String,
    
   override def tick: DebugableKilobot = {
     // TODO - support movement!
-    val next = kilobot.loop()
-//    log(s"TICK ==> $next")
-    checkpoint("tick", new DebugableKilobot(role, id, pos, next))
+    val dk = new DebugableKilobot(role, id, pos, kilobot.loop())
+    logger.info("Tick", dk)
+    dk
   }
 
   override def debug(w: World): Unit = {
@@ -93,13 +116,13 @@ class DebugableKilobot(val role: String,
       sender.map(r => {
         val dist = pos.diff(r.pos)
         val kb = kilobot.in(m.toRaw(), dist)
-        (true, checkpoint("msg_in", copyWith(kb)))
+        (true, copyWith(kb))
       })
     }).flatten.getOrElse( (false, this) ) 
   }
   
   def delivered(success: Boolean, msgIds: Int): DebugableKilobot = {
-    checkpoint("delivered", new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess()))
+    new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
   }
   
   override def hasMessageToSend(): Boolean = {
@@ -120,7 +143,7 @@ class DebugableKilobot(val role: String,
   }
 
   def delivered(success: Boolean, msgIds: Seq[Int]): Robot = {
-                         checkpoint("delivered", this)
-                       }
+   new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
+ }
 
 }

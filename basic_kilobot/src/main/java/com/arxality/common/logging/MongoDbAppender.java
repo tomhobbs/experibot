@@ -2,47 +2,66 @@ package com.arxality.common.logging;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import org.bson.Document;
 import org.slf4j.MDC;
 
+import com.arxality.experibot.logging.Loggable;
 import com.arxality.experibot.simulator.Robot;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.InsertOneOptions;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+
+import scala.collection.mutable.WrappedArray;
 
 public class MongoDbAppender<E> extends AppenderBase<E> {
 
   private String uri;
   private int batchSize;
+  private int socketTimeout;
   
   private MongoClient mongo;
   private MongoClientURI connectionString;
-  private MongoCollection logs;
-  private Batcher<Map<String, Object>> batcher;
+  private MongoCollection<Document> logs;
+  private Batcher<Document> batcher;
+  
+  private volatile boolean shuttingDown = false;
 
   @Override
   public void start() {
     super.start();
-    connectionString = new MongoClientURI(uri);
+    
+    MongoClientOptions.Builder opts = new MongoClientOptions.Builder()
+          .socketTimeout(socketTimeout);
+    
+    connectionString = new MongoClientURI(uri, opts);
     mongo = new MongoClient(connectionString);
-    batcher = new Batcher<Map<String, Object>>(batchSize, this::saveBatch);
+    batcher = new Batcher<Document>(batchSize, this::saveBatch);
+    
+    System.out.println("Connecting to "+uri);
     
     logs = mongo
       .getDatabase(connectionString.getDatabase())
+      .withWriteConcern(WriteConcern.ACKNOWLEDGED)
       .getCollection(connectionString.getCollection());
+    
   }
 
   @Override
   public void stop() {
     try {
+      shuttingDown = true;
+      batcher.stop();
       if (null != mongo) mongo.close();
     } finally {
       super.stop();
@@ -54,17 +73,18 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
     if(eventObject instanceof LoggingEvent) {
       LoggingEvent le = (LoggingEvent) eventObject;
       
-      Map<String, Object> log = new HashMap<>();
-      addIfInMDC("robot_id", log);
-      addIfInMDC("robot_role", log);
+      Document log = new Document();
       
       log.put("timestamp", System.currentTimeMillis());
       log.put("timestamp_nano", System.nanoTime());
+      log.put("msg", le.getFormattedMessage());
       
       if(null != le && null != le.getArgumentArray()) {
+        System.out.println("LE>>>"+ le.getFormattedMessage());
+        
         for(Object arg : le.getArgumentArray()) {
           if(arg instanceof Robot) {
-            ((Robot)arg).appendData(log);
+            log.putAll(clean(((Loggable) arg).toDocument()));
           }
         }
       }
@@ -74,30 +94,43 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
    
   }
 
-  private void addIfInMDC(String key, Map<String, Object> log) {
-    if(null != MDC.get(key)) log.put(key, MDC.get(key));
-  }
-  
   @SuppressWarnings("unchecked")
-  private void saveBatch(Collection<Map<String, Object>> es) {
-    System.out.println("SAVING>>>"+ es.size());
-    List<Document> docs = convert(es);
-    logs.insertMany(docs);
-  }
-  
-  private List<Document> convert(Collection<Map<String, Object>> es) {
-   return 
-        es
-          .stream()
-          .map((Map<String,Object> m) -> { 
-            Document doc = new Document();
-            doc.putAll(m);
-            return doc; 
-          })
-          .collect(Collectors.toList())
-          ;
+  private void saveBatch(List<Document> docs) {
+    try {
+      logs.insertMany(docs);
+    } catch (com.mongodb.MongoWaitQueueFullException e) {
+      if(!shuttingDown) e.printStackTrace();
+    } catch (com.mongodb.MongoSocketReadException e) {
+      if(!shuttingDown) e.printStackTrace();
+    } catch (com.mongodb.MongoInterruptedException e) {
+      if(!shuttingDown) e.printStackTrace();
+    }
   }
 
+  private Document clean(Document dirty) {
+    Document clean = new Document();
+    
+    dirty.forEach((k,v) -> {
+      if(v instanceof WrappedArray) {
+        final List<Object> vs = scala.collection.JavaConversions.seqAsJavaList((WrappedArray)v);
+        clean.append(k, vs);
+      } else if(v instanceof Document) {
+        clean.append(k, clean((Document)v));
+      } else if(v instanceof scala.Tuple3) {
+        final List<Object> vs = new LinkedList<>();
+        scala.Tuple3 v3 = (scala.Tuple3) v;
+        vs.add(v3._1());
+        vs.add(v3._2());
+        vs.add(v3._3());
+        clean.append(k, vs);
+      } else {
+        clean.append(k, v);
+      }
+    }); 
+    
+    return clean;
+  }
+  
   public void setUri(String uri) {
     this.uri = uri;
   }
@@ -105,4 +138,9 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
   public void setBatchSize(int batchSize) {
     this.batchSize = batchSize;
   }
+  
+  public void setSocketTimeout(int timeout) {
+    this.socketTimeout = timeout;
+  }
+  
 }

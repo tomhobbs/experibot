@@ -1,45 +1,56 @@
 package com.arxality.common.logging;
 
-import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Stack;
-import java.util.concurrent.Executor;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 public class Batcher<E> {
 
-  private final Executor executor = Executors.newCachedThreadPool(new DaemonThreadFactor());
+  private final ExecutorService executor = Executors.newCachedThreadPool(new DaemonThreadFactory());
   private final int size;
-  private final Consumer<Collection<E>> batchFull;
+  private final Consumer<List<E>> batchFull;
   
-  // Keep it simple and stick with two for now
-  private transient Stack<Collection<E>> batches = new Stack<>();
+  private transient List<E> batches = new LinkedList<>();
   
-  
-  Batcher(int batchSize, Consumer<Collection<E>> batchFull) {
+  /**
+   * Frustratingly, the Mongo API requires a List, not a Collection
+   * and so we use the same here to prevent having to convert between
+   * more/less specific.
+   * 
+   * @param batchSize
+   * @param batchFull
+   */
+  Batcher(int batchSize, Consumer<List<E>> batchFull) {
     this.size = batchSize;
     this.batchFull = batchFull;
-    batches.push(new LinkedList<E>());
   }
 
   synchronized void add(E e) {
-    batches.peek().add(e);
+    batches.add(e);
     
-    if(batches.peek().size() >= this.size) {
-      executor.execute(new BatchDrain(batches.pop()));
-      batches.push(new LinkedList<E>());
+    
+    
+    if(batches.size() >= this.size) {
+      List<E> old = batches;
+      executor.execute(new BatchDrain(old));
+      batches = new LinkedList<E>();
     }
   }
   
-  private static class DaemonThreadFactor implements ThreadFactory {
+  public void stop() {
+    executor.shutdownNow();
+  }
+  
+  private static class DaemonThreadFactory implements ThreadFactory {
 
-    private static int COUNTER = 0;
+    private ThreadFactory defaultFactory =  Executors.defaultThreadFactory();
     
     @Override
     public Thread newThread(Runnable r) {
-      Thread t = new Thread(r, "BatcherThread-"+(++COUNTER));
+      Thread t = defaultFactory.newThread(r);
       t.setDaemon(true);
       return t;
     }
@@ -48,9 +59,9 @@ public class Batcher<E> {
   
   private class BatchDrain implements Runnable {
     
-    private Collection<E> batch;
+    private List<E> batch;
     
-    private BatchDrain(Collection<E> batch) {
+    private BatchDrain(List<E> batch) {
       this.batch = batch;
     }
     

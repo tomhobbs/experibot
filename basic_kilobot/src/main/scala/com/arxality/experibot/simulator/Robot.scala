@@ -30,6 +30,4 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
 
   def delivered(success: Boolean, msgId: Int): Robot
   
-  def appendData(log: java.util.Map[String,Any]): Unit
-  
 }

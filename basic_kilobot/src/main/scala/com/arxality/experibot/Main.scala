@@ -53,7 +53,7 @@ object Main extends App with LazyLogging {
       )
   
   val now = System.currentTimeMillis()
-  val stopAt = now + (50)
+  val stopAt = now + (5000)
   
   
   var w2 = world.init()
