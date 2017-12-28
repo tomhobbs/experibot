@@ -1,0 +1,21 @@
+<configuration debug="true">
+
+  <!-- appender name="TEST_MONGO" class="ch.qos.logback.contrib.mongodb.MongoDBAccessEventAppender" -->
+  <appender name="TEST_MONGO" class="com.arxality.common.logging.MongoDbAppender">
+     <uri>mongodb://localhost:37017/simulator.log</uri>
+     <socketTimeout>3000</socketTimeout>
+     <batchSize>1000</batchSize>
+  </appender>
+  
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%X{robot_id}] [%X{robot_role}] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
+  <root level="info">
+    <!-- appender-ref ref="STDOUT" / -->
+    <appender-ref ref="TEST_MONGO" />
+  </root>
+  
+</configuration>

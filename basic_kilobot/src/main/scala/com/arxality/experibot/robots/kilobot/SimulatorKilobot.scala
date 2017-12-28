@@ -4,56 +4,58 @@ import com.arxality.experibot.simulator.World
 import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.comms.Message
+import com.typesafe.scalalogging.LazyLogging
+import org.slf4j.MDC
 
-class DebuggableKilobotMessage(override val id: Int,  
-                               override val senderId: Int,  
-                               override val recipientIds: Option[Seq[Int]],  // For Kilobots this will always be None, since that isn't how KB comms works
-                               msgType: Short,  
-                               data: Option[Array[Short]]) extends Message(id, senderId, None) {
-  
-  /*
-   * Kilobots just use broadcast, so find everything within comms range and
-   * check that.
-   */
-  def isFor(w: World, r: Robot): Boolean = {
-    val recipients = w.findRobot(senderId).map(r => w.inCommsRange(r) )
-    recipients.contains(r)
-  }
-  
-  def toRaw(): KilobotMessage = {
-    new KilobotMessage(msgType, data);
-  }
-}
-
-object DebugableKilobot {
-  def wrap(id: Int, log: (String) => Unit): (String) => Unit = {
-    (msg: String) => {
-      log(s"[$id]\t$msg")
-    }
-  }
-}
+import com.arxality.experibot.logging.Loggable
+import org.bson.Document
+import ch.qos.logback.classic.Level
 
 class DebugableKilobot(val role: String,    
                        id: Int,   
                        pos: Position,   
                        kilobot: Kilobot) 
-                       extends Robot(id, pos) {
+                       extends Robot(id, pos) with LazyLogging with Loggable {
+  
+  MDC.put("robot_id", id.toString())
+  MDC.put("robot_role", role)
   
   def this(role: String = "Kilobot", 
            id: Int,
            pos: Position,
-           botBuilder: ((String) => Unit) => Kilobot,
-           log: (String) => Unit) 
-           = this(role, id, pos, botBuilder(DebugableKilobot.wrap(id, log)))
+           botBuilder: () => Kilobot) = {
+    
+    
+    this(role, id, pos, botBuilder())
+  }
 
+  def evolve(event: String, kilobot: Kilobot): DebugableKilobot = {
+    val evolved = new DebugableKilobot(role, id, pos, kilobot)
+    logger.info(event, evolved)
+    evolved
+  }
+           
+  override def toDocument(): Document = {
+    new Document()
+            .append("robot_id", id.toString())
+            .append("pos", pos.toDocument())
+            .append("robot_role", role)
+            .append("robot", kilobot.toDocument())
+  }
+           
   def init(): DebugableKilobot = {
     val ready = kilobot.setup()
-    new DebugableKilobot(role, id, pos, ready)
+    evolve("init", ready)
   }
   
-  def copyWith(kb: Kilobot): DebugableKilobot = {
-    new DebugableKilobot(role, id, pos, kb)
-  }
+//  def log(msg: String): Unit = {
+//    logger.info(msg, this)
+//  }
+//  
+//  def log(msg:String, kb: DebugableKilobot): DebugableKilobot = {
+//    logger.info(msg, kb)
+//    kb;
+//  }
   
   def nextMsgId(): Int = {
     0  // TODO
@@ -66,14 +68,7 @@ class DebugableKilobot(val role: String,
    
   override def tick: DebugableKilobot = {
     // TODO - support movement!
-    val next = kilobot.loop()
-//    log(s"TICK ==> $next")
-    new DebugableKilobot(role, id, pos, next)
-  }
-  
-  def debug(w: World): Unit = {
-//    val inMyRange = w.inCommsRange(this).map { x => x.id }
-//    log(s"$pos  In range of: $inMyRange")
+    evolve("tick", kilobot.loop())
   }
 
   def toSend(): Option[DebuggableKilobotMessage] = {
@@ -93,13 +88,14 @@ class DebugableKilobot(val role: String,
       sender.map(r => {
         val dist = pos.diff(r.pos)
         val kb = kilobot.in(m.toRaw(), dist)
-        (true, copyWith(kb))
+        (true, evolve("deliver", kb))
       })
     }).flatten.getOrElse( (false, this) ) 
   }
   
   def delivered(success: Boolean, msgIds: Int): DebugableKilobot = {
-    new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
+    val msg = if(success) "deliver_success" else "deliver_fail"
+    evolve(msg, kilobot.transmissionSuccess())
   }
   
   override def hasMessageToSend(): Boolean = {
@@ -120,7 +116,7 @@ class DebugableKilobot(val role: String,
   }
 
   def delivered(success: Boolean, msgIds: Seq[Int]): Robot = {
-                         this
-                       }
+   evolve("delivered", kilobot.transmissionSuccess())
+ }
 
 }

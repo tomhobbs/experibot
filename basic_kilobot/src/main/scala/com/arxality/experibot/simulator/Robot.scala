@@ -2,6 +2,7 @@ package com.arxality.experibot.simulator
 
 import com.arxality.experibot.comms.Postman
 import com.arxality.experibot.comms.Message
+import org.slf4j.MDC
 
 /**
  * Abstract because it makes no sense (in the physical world) for a certain
@@ -17,12 +18,6 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def role(): String
   
-  def log(msg: String) = {
-    println(s"[$id]   [$role]   $msg");
-  }
-  
-  def debug(w: World): Unit
-
   def isInRange(x: Robot): Boolean
   
   def tick(): Robot
@@ -32,5 +27,5 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   def getMessagesToSend(world: World): Seq[Message]
 
   def delivered(success: Boolean, msgId: Int): Robot
-
+  
 }
