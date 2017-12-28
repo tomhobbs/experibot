@@ -46,17 +46,6 @@ class World(generation: Int = 0, robots: Seq[Robot])
     new World(generation, ready)
   }
   
-  def debug(): World = {
-    logger.debug(s"-- DEBUG WORLD (Gen: $generation) --")
-    logger.debug(s"Num Robots: ${robots.length}")
-    
-    robots.foreach { _.debug(this) }
-    
-    logger.debug(s"-----------------")
-    
-    this
-  }
-  
   def findRobots(f: (Robot => Boolean)): Seq[Robot] = {
     streamRobots().filter(f)
   }

@@ -18,8 +18,6 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   
   def role(): String
   
-  def debug(w: World): Unit
-
   def isInRange(x: Robot): Boolean
   
   def tick(): Robot
@@ -29,5 +27,7 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
   def getMessagesToSend(world: World): Seq[Message]
 
   def delivered(success: Boolean, msgId: Int): Robot
+  
+  def log(msg: String): Unit
   
 }

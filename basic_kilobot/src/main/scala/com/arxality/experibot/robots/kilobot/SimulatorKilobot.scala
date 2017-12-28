@@ -62,6 +62,10 @@ class DebugableKilobot(val role: String,
            pos: Position,
            botBuilder: () => Kilobot) = this(role, id, pos, botBuilder())
 
+  def evolve(event: String, kilobot: Kilobot): DebugableKilobot = {
+    log(event, new DebugableKilobot(role, id, pos, kilobot))
+  }
+           
   override def toDocument(): Document = {
     new Document()
             .append("robot_id", id)
@@ -72,11 +76,16 @@ class DebugableKilobot(val role: String,
            
   def init(): DebugableKilobot = {
     val ready = kilobot.setup()
-    new DebugableKilobot(role, id, pos, ready)
+    evolve("init", ready)
   }
   
-  def copyWith(kb: Kilobot): DebugableKilobot = {
-    new DebugableKilobot(role, id, pos, kb)
+  def log(msg: String): Unit = {
+    logger.info(msg, this)
+  }
+  
+  def log(msg:String, kb: DebugableKilobot): DebugableKilobot = {
+    logger.info(msg, kb)
+    kb;
   }
   
   def nextMsgId(): Int = {
@@ -90,15 +99,9 @@ class DebugableKilobot(val role: String,
    
   override def tick: DebugableKilobot = {
     // TODO - support movement!
-    val dk = new DebugableKilobot(role, id, pos, kilobot.loop())
-    logger.info("Tick", dk)
-    dk
+    evolve("tick", kilobot.loop())
   }
 
-  override def debug(w: World): Unit = {
-    logger.debug(s"[$id] [$role] $kilobot")
-  }
-  
   def toSend(): Option[DebuggableKilobotMessage] = {
      kilobot.out().map(m => new DebuggableKilobotMessage(nextMsgId(), id, None, m.msgType, m.data))
   }
@@ -116,13 +119,14 @@ class DebugableKilobot(val role: String,
       sender.map(r => {
         val dist = pos.diff(r.pos)
         val kb = kilobot.in(m.toRaw(), dist)
-        (true, copyWith(kb))
+        (true, evolve("deliver", kb))
       })
     }).flatten.getOrElse( (false, this) ) 
   }
   
   def delivered(success: Boolean, msgIds: Int): DebugableKilobot = {
-    new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
+    val msg = if(success) "deliver_success" else "deliver_fail"
+    evolve(msg, kilobot.transmissionSuccess())
   }
   
   override def hasMessageToSend(): Boolean = {
@@ -143,7 +147,7 @@ class DebugableKilobot(val role: String,
   }
 
   def delivered(success: Boolean, msgIds: Seq[Int]): Robot = {
-   new DebugableKilobot(role, id, pos, kilobot.transmissionSuccess())
+   evolve("delivered", kilobot.transmissionSuccess())
  }
 
 }
