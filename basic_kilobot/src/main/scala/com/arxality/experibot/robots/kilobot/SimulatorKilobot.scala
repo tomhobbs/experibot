@@ -9,47 +9,7 @@ import org.slf4j.MDC
 
 import com.arxality.experibot.logging.Loggable
 import org.bson.Document
-
-class DebuggableKilobotMessage(override val id: Int,  
-                               override val senderId: Int,  
-                               override val recipientIds: Option[Seq[Int]],  // For Kilobots this will always be None, since that isn't how KB comms works
-                               msgType: Short,  
-                               data: Option[Seq[Short]]) extends Message(id, senderId, None) with Loggable {
-  
-  override def toDocument(): Document = {
-    val doc = new Document()
-                .append("msg_id", id)
-                .append("sender_id", senderId)
-                .append("msg_type", msgType)
-    
-    (recipientIds, data) match {
-      case (Some(rIds), Some(bytes)) => {
-        doc.append("recipient_ids", rIds).append("data", bytes)
-      }
-      case (_, Some(bytes)) => {
-        doc.append("data", bytes)
-      }
-      case (Some(rIds), _) => {
-        doc.append("recipient_ids",rIds)
-      }
-      case (None, None) => doc
-    }
-    
-  }
-  
-  /*
-   * Kilobots just use broadcast, so find everything within comms range and
-   * check that.
-   */
-  def isFor(w: World, r: Robot): Boolean = {
-    val recipients = w.findRobot(senderId).map(r => w.inCommsRange(r) )
-    recipients.contains(r)
-  }
-  
-  def toRaw(): KilobotMessage = {
-    new KilobotMessage(msgType, data);
-  }
-}
+import ch.qos.logback.classic.Level
 
 class DebugableKilobot(val role: String,    
                        id: Int,   
@@ -57,18 +17,27 @@ class DebugableKilobot(val role: String,
                        kilobot: Kilobot) 
                        extends Robot(id, pos) with LazyLogging with Loggable {
   
+  MDC.put("robot_id", id.toString())
+  MDC.put("robot_role", role)
+  
   def this(role: String = "Kilobot", 
            id: Int,
            pos: Position,
-           botBuilder: () => Kilobot) = this(role, id, pos, botBuilder())
+           botBuilder: () => Kilobot) = {
+    
+    
+    this(role, id, pos, botBuilder())
+  }
 
   def evolve(event: String, kilobot: Kilobot): DebugableKilobot = {
-    log(event, new DebugableKilobot(role, id, pos, kilobot))
+    val evolved = new DebugableKilobot(role, id, pos, kilobot)
+    logger.info(event, evolved)
+    evolved
   }
            
   override def toDocument(): Document = {
     new Document()
-            .append("robot_id", id)
+            .append("robot_id", id.toString())
             .append("pos", pos.toDocument())
             .append("robot_role", role)
             .append("robot", kilobot.toDocument())
@@ -79,14 +48,14 @@ class DebugableKilobot(val role: String,
     evolve("init", ready)
   }
   
-  def log(msg: String): Unit = {
-    logger.info(msg, this)
-  }
-  
-  def log(msg:String, kb: DebugableKilobot): DebugableKilobot = {
-    logger.info(msg, kb)
-    kb;
-  }
+//  def log(msg: String): Unit = {
+//    logger.info(msg, this)
+//  }
+//  
+//  def log(msg:String, kb: DebugableKilobot): DebugableKilobot = {
+//    logger.info(msg, kb)
+//    kb;
+//  }
   
   def nextMsgId(): Int = {
     0  // TODO

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.bson.Document;
@@ -75,16 +76,20 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
       
       Document log = new Document();
       
+      addIfInMDC("robot_id", log);
+      addIfInMDC("robot_role", log);
+      
       log.put("timestamp", System.currentTimeMillis());
       log.put("timestamp_nano", System.nanoTime());
       log.put("msg", le.getFormattedMessage());
       
       if(null != le && null != le.getArgumentArray()) {
-        System.out.println("LE>>>"+ le.getFormattedMessage());
         
         for(Object arg : le.getArgumentArray()) {
           if(arg instanceof Robot) {
-            log.putAll(clean(((Loggable) arg).toDocument()));
+            Document doc = clean(((Loggable) arg).toDocument());
+            errorIfRobotIdsMismatch(doc.get("robot_id"), MDC.get("robot_id"));
+            log.putAll(doc);
           }
         }
       }
@@ -94,6 +99,17 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
    
   }
 
+  private void errorIfRobotIdsMismatch(Object fromDoc, Object fromMdc) {
+    if(Objects.equals(fromDoc,  fromMdc)) return;
+    else {
+      throw new IllegalStateException("robot_ids in MDC and doc did not match: MDC=["+fromMdc+"], Doc=["+fromDoc+"]");
+    }
+  }
+
+  private void addIfInMDC(String key, Map<String, Object> log) {
+    if(null != MDC.get(key)) log.put(key, MDC.get(key));
+  }
+  
   @SuppressWarnings("unchecked")
   private void saveBatch(List<Document> docs) {
     try {

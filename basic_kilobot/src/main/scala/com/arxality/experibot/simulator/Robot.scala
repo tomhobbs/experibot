@@ -28,6 +28,4 @@ abstract class Robot(val id: Int, val pos: Position) extends Postman {
 
   def delivered(success: Boolean, msgId: Int): Robot
   
-  def log(msg: String): Unit
-  
 }

@@ -7,6 +7,7 @@ import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.logging.Loggable
 import org.bson.Document
 import com.typesafe.scalalogging.LazyLogging
+import ch.qos.logback.classic.Level
 
 object Kilobot {
   val COMMS_RANGE = 1;
@@ -35,36 +36,34 @@ case class RGB(red: Short, green:Short, blue: Short) extends Loggable {
   }
 }
 
-abstract class Kilobot extends LazyLogging with Loggable {
+abstract class Kilobot extends Loggable {
   
-  def setup(): Kilobot = {
-    this
-  }
+  def setup(): Kilobot
   
   def in(m: KilobotMessage, dist: Double): Kilobot
   def out(): Option[KilobotMessage]
   def loop(): Kilobot
-  def setColour(colour: RGB): Kilobot
+//  def setColour(colour: RGB): Kilobot
   def transmissionSuccess(): Kilobot
   
-  def info[R <: Kilobot](msg: String, kb: R): R = {
-    logger.info(msg, kb)
-    kb
-  }
-  
-  def warn[R <: Kilobot](msg: String, kb: R): R = {
-    logger.warn(msg, kb)
-    kb
-  }
-  
-  def error[R <: Kilobot](msg: String, kb: R): R = {
-    logger.error(msg, kb)
-    kb
-  }
-    
-  def debug[R <: Kilobot](msg: String, kb: R): R = {
-    logger.debug(msg, kb)
-    kb
-  }
+//  def info[R <: Kilobot](msg: String, kb: R): R = {
+//    logger.info(msg, kb)
+//    kb
+//  }
+//  
+//  def warn[R <: Kilobot](msg: String, kb: R): R = {
+//    logger.warn(msg, kb)
+//    kb
+//  }
+//  
+//  def error[R <: Kilobot](msg: String, kb: R): R = {
+//    logger.error(msg, kb)
+//    kb
+//  }
+//    
+//  def debug[R <: Kilobot](msg: String, kb: R): R = {
+//    logger.debug(msg, kb)
+//    kb
+//  }
 }
 

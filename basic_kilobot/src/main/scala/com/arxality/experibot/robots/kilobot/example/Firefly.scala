@@ -7,6 +7,7 @@ import java.util.regex.Pattern.LazyLoop
 import com.typesafe.scalalogging.LazyLogging
 import org.bson.Document
 import com.arxality.experibot.logging.Loggable
+import ch.qos.logback.classic.Level
 
 object FireflyMessage {
   val FLASH: Short = 20
@@ -56,15 +57,14 @@ class Firefly(val me: Short,
               val light_on: Boolean = false,
               val ticks: Int = 0,
               val setupComplete: Boolean = false,
-              val memory: ColourMemory = new ColourMemory()) extends Kilobot with Loggable { 
+              val memory: ColourMemory = new ColourMemory()) extends Kilobot with LazyLogging with Loggable { 
   
   def this() = this(0, RGB(0,0,0))
   
   override def setup(): Firefly = {
     val me = Kilobot.rand_soft()
     val colour = rand_colour()
-    val ff = new Firefly(me, colour, None, None, false, false, 0, true)
-    info(s"Setup - $me - $colour", ff)
+    new Firefly(me, colour, None, None, false, false, 0, true)
   }
   
   override def toDocument(): Document  = {
@@ -91,12 +91,21 @@ class Firefly(val me: Short,
   }
   
   def in(m: KilobotMessage, dist: Double): Kilobot = {
-    new Firefly(me, colour, toSend, Some(m), transmission_success, light_on, ticks, setupComplete, memory)
+    new Firefly(me, 
+                colour, 
+                toSend, 
+                Some(m), 
+                transmission_success, 
+                light_on, 
+                ticks, 
+                setupComplete, 
+                memory)
   }
 
   def loop(): Kilobot = {
     if(!setupComplete) {
-      error("loop is called without setup being complete", this)
+      logger.error("loop is called without setup being complete")
+      this
     } else {
       
     if(received_message()) {
@@ -107,23 +116,58 @@ class Firefly(val me: Short,
             val newColour = adapt._2
             val newMemory = adapt._1
             val out = FireflyMessage.flash(newColour)
-            val ff = new Firefly(me, newColour, Some(out), received, transmission_success, true, ticks+1, true, newMemory)
-            info(s"Flashing new colour $newColour", ff)
+            val ff = new Firefly(me, 
+                                 newColour, 
+                                 Some(out), 
+                                 received, 
+                                 transmission_success, 
+                                 true, 
+                                 ticks+1, 
+                                 true, 
+                                 newMemory)
+            logger.info(s"Flashing new colour $newColour")
+            ff
           }
           case _ => {
-            val ff = new Firefly(me, colour, toSend, None, false, light_on, ticks+1, true, memory)
-            warn(s"Unknown message type: ${m.msgType}", ff)
+            val ff = new Firefly(me, 
+                                 colour, 
+                                 toSend, 
+                                 None, 
+                                 false, 
+                                 light_on, 
+                                 ticks+1, 
+                                 true, 
+                                 memory)
+            logger.warn(s"Unknown message type: ${m.msgType}")
+            ff
           }
         }
       }).getOrElse(this)
     } else {
-      debug("No new message", this)
+      logger.debug("No new message")
       if(light_on) {
-        new Firefly(me, colour, toSend, received, transmission_success, false, ticks+1, true, memory)
+        new Firefly(me, 
+            colour, 
+            toSend, 
+            received, 
+            transmission_success, 
+            false, 
+            ticks+1, 
+            true, 
+            memory)
       } else if(should_flash()) {
         val out = FireflyMessage.flash(colour)
-        val ff = new Firefly(me, colour, Some(out), received, transmission_success, true, ticks+1, true, memory)
-        info(s"Flashing: $colour", ff)
+        val ff = new Firefly(me, 
+                             colour, 
+                             Some(out), 
+                             received, 
+                             transmission_success, 
+                             true, 
+                             ticks+1, 
+                             true, 
+                             memory)
+        logger.info(s"Flashing: $colour")
+        ff
       } else {
         this
       }
@@ -140,14 +184,32 @@ class Firefly(val me: Short,
     toSend
   }
 
-  def setColour(new_colour: RGB): Kilobot = {
-    val ff = new Firefly(me, new_colour, toSend, received, transmission_success, true, ticks, true, memory)
-    debug("Setting new colour", ff)
-  }
+//  def setColour(new_colour: RGB): Kilobot = {
+//    val ff = new Firefly(me, 
+//                         new_colour, 
+//                         toSend, 
+//                         received, 
+//                         transmission_success, 
+//                         true, 
+//                         ticks, 
+//                         true, 
+//                         memory)
+//    logger.info("Setting new colour")
+//    ff
+//  }
 
   def transmissionSuccess(): Kilobot = {
-    val ff = new Firefly(me, colour, None, received, true, light_on, ticks, true, memory)
-    debug("Message delivered", ff)
+    val ff = new Firefly(me, 
+                         colour, 
+                         None, 
+                         received, 
+                         true, 
+                         light_on, 
+                         ticks, 
+                         true, 
+                         memory)
+    logger.debug("Message delivery succes")
+    ff
   }
 
   // 50:50 chance of flashing
@@ -184,7 +246,9 @@ class Firefly(val me: Short,
     val a = memory._1
     val b = memory._2
     val c = memory._3
-    Math.max(a, Math.max(b, c)).toShort
+    
+    // In a Kilobot, max value for colour component is 3, so be sure its capped
+    Math.min(3, Math.max(a, Math.max(b, c))).toShort
   }
   
   def rand_colour_component(): Short = {
