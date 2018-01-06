@@ -1,12 +1,13 @@
 package com.arxality.experibot
 
-import com.arxality.experibot.simulator.World
-import com.arxality.experibot.robots.kilobot.DebugableKilobot
+import com.arxality.experibot.simulator.InMemory
+import com.arxality.experibot.kilobot.DebugableKilobot
 import com.arxality.experibot.simulator.Position
-import com.arxality.experibot.robots.kilobot.example.Firefly
-import com.arxality.experibot.robots.kilobot.Kilobot
+import com.arxality.experibot.kilobot.example.Firefly
+import com.arxality.experibot.kilobot.Kilobot
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.MDC
+import com.arxality.experibot.simulator.Simulation
 
 object Main extends App with LazyLogging {
     
@@ -16,7 +17,7 @@ object Main extends App with LazyLogging {
     new Firefly()
   }
   
-  val world = new World(0,
+  val world = new InMemory(0,
         Seq(
             
             new DebugableKilobot("Firefly",  11, new Position(1,1), botBuilder),
@@ -55,13 +56,12 @@ object Main extends App with LazyLogging {
   val now = System.currentTimeMillis()
   val stopAt = now + (5000)
   
+  // FIXME Nasty hack
+  var simulator = world.init()
   
-  var w2 = world.init()
   while(System.currentTimeMillis() < stopAt) {
-    w2 = w2.tick()
+    simulator = Simulation.tick(simulator)
   }
-  
-//  world.init().tick().tick().tick()
   
   logger.info("Stopped")
   

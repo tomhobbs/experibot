@@ -1,7 +1,5 @@
-package com.arxality.experibot.robots.kilobot
+package com.arxality.experibot.kilobot
 
-import com.arxality.experibot.comms.Message
-import com.arxality.experibot.simulator.World
 import com.arxality.experibot.simulator.Position
 import com.arxality.experibot.logging.Loggable
 import org.bson.Document
@@ -26,15 +24,6 @@ case class KilobotMessage(msgType: Short, data: Option[Seq[Short]]) extends Logg
   }
 }
 
-case class RGB(red: Short, green:Short, blue: Short) extends Loggable {
-  override def toDocument(): Document  = {
-    new Document()
-        .append("r", red)
-        .append("g", green)
-        .append("b", blue)
-  }
-}
-
 abstract class Kilobot extends Loggable {
   
   def setup(): Kilobot
@@ -42,27 +31,8 @@ abstract class Kilobot extends Loggable {
   def in(m: KilobotMessage, dist: Double): Kilobot
   def out(): Option[KilobotMessage]
   def loop(): Kilobot
-//  def setColour(colour: RGB): Kilobot
+  def setColour(colour: RGB): Kilobot
   def transmissionSuccess(): Kilobot
-  
-//  def info[R <: Kilobot](msg: String, kb: R): R = {
-//    logger.info(msg, kb)
-//    kb
-//  }
-//  
-//  def warn[R <: Kilobot](msg: String, kb: R): R = {
-//    logger.warn(msg, kb)
-//    kb
-//  }
-//  
-//  def error[R <: Kilobot](msg: String, kb: R): R = {
-//    logger.error(msg, kb)
-//    kb
-//  }
-//    
-//  def debug[R <: Kilobot](msg: String, kb: R): R = {
-//    logger.debug(msg, kb)
-//    kb
-//  }
+
 }
 

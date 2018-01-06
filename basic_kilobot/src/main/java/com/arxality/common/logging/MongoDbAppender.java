@@ -8,8 +8,8 @@ import java.util.Objects;
 import org.bson.Document;
 import org.slf4j.MDC;
 
+import com.arxality.experibot.kilobot.DebugableKilobot;
 import com.arxality.experibot.logging.Loggable;
-import com.arxality.experibot.robots.kilobot.DebugableKilobot;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -96,10 +96,9 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
   }
 
   private void errorIfRobotIdsMismatch(Object fromDoc, Object fromMdc) {
-    if(Objects.equals(fromDoc,  fromMdc)) return;
-    else {
-      throw new IllegalStateException("robot_ids in MDC and doc did not match: MDC=["+fromMdc+"], Doc=["+fromDoc+"]");
-    }
+    if(null == fromMdc) return;
+    else if(Objects.equals(fromDoc,  fromMdc)) return;
+    else throw new IllegalStateException("robot_ids in MDC and doc did not match: MDC=["+fromMdc+"], Doc=["+fromDoc+"]");
   }
 
   private void addIfInMDC(String key, Map<String, Object> log) {

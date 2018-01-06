@@ -1,13 +1,19 @@
 package com.arxality.experibot.simulator
 
-import com.arxality.experibot.robots.kilobot.DebugableKilobot
+import com.arxality.experibot.kilobot.DebugableKilobot
+import com.arxality.experibot.kilobot.KilobotMessage
+import com.arxality.experibot.kilobot.DebuggableKilobotMessage
 
 trait RobotService {
   
-  def streamRobots(): Seq[DebugableKilobot]
+  def nextTick(): RobotService
   
-  def findRobot(id: Int): Option[DebugableKilobot]
+  def completeTick(): RobotService
   
-  def findRobots(f: (DebugableKilobot => Boolean)): Seq[DebugableKilobot]
+  def streamRobots(f: (DebugableKilobot => DebugableKilobot)) : RobotService
+  
+  def collectOutgoingMessages(f: (DebugableKilobot => Option[DebuggableKilobotMessage])): RobotService
+  
+  def deliverAllMessages(f: ((DebugableKilobot, Int) => DebugableKilobot)): RobotService
   
 }

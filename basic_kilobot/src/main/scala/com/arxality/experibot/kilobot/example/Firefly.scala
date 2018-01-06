@@ -1,8 +1,8 @@
-package com.arxality.experibot.robots.kilobot.example
+package com.arxality.experibot.kilobot.example
 
-import com.arxality.experibot.robots.kilobot.Kilobot
-import com.arxality.experibot.robots.kilobot.KilobotMessage
-import com.arxality.experibot.robots.kilobot.RGB
+import com.arxality.experibot.kilobot.Kilobot
+import com.arxality.experibot.kilobot.KilobotMessage
+import com.arxality.experibot.kilobot.RGB
 import java.util.regex.Pattern.LazyLoop
 import com.typesafe.scalalogging.LazyLogging
 import org.bson.Document
@@ -184,20 +184,18 @@ class Firefly(val me: Short,
     toSend
   }
 
-//  def setColour(new_colour: RGB): Kilobot = {
-//    val ff = new Firefly(me, 
-//                         new_colour, 
-//                         toSend, 
-//                         received, 
-//                         transmission_success, 
-//                         true, 
-//                         ticks, 
-//                         true, 
-//                         memory)
-//    logger.info("Setting new colour")
-//    ff
-//  }
-
+  def setColour(c: RGB): Firefly = {
+    new Firefly(me, 
+                c, 
+                out, 
+                received, 
+                transmission_success, 
+                light_on, 
+                ticks, 
+                setupComplete, 
+                memory)
+  }
+  
   def transmissionSuccess(): Kilobot = {
     val ff = new Firefly(me, 
                          colour, 
