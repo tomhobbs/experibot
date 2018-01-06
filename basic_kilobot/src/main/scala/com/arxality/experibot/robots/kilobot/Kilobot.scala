@@ -1,6 +1,5 @@
 package com.arxality.experibot.robots.kilobot
 
-import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.comms.Message
 import com.arxality.experibot.simulator.World
 import com.arxality.experibot.simulator.Position

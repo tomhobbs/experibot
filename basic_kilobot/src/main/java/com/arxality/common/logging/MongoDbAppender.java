@@ -1,24 +1,20 @@
 package com.arxality.common.logging;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 import org.bson.Document;
 import org.slf4j.MDC;
 
 import com.arxality.experibot.logging.Loggable;
-import com.arxality.experibot.simulator.Robot;
+import com.arxality.experibot.robots.kilobot.DebugableKilobot;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.InsertOneOptions;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.AppenderBase;
@@ -86,7 +82,7 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
       if(null != le && null != le.getArgumentArray()) {
         
         for(Object arg : le.getArgumentArray()) {
-          if(arg instanceof Robot) {
+          if(arg instanceof DebugableKilobot) {
             Document doc = clean(((Loggable) arg).toDocument());
             errorIfRobotIdsMismatch(doc.get("robot_id"), MDC.get("robot_id"));
             log.putAll(doc);
@@ -110,7 +106,6 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
     if(null != MDC.get(key)) log.put(key, MDC.get(key));
   }
   
-  @SuppressWarnings("unchecked")
   private void saveBatch(List<Document> docs) {
     try {
       logs.insertMany(docs);
@@ -123,6 +118,7 @@ public class MongoDbAppender<E> extends AppenderBase<E> {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   private Document clean(Document dirty) {
     Document clean = new Document();
     

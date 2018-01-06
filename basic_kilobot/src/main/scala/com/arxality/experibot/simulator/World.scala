@@ -10,6 +10,7 @@ import com.arxality.experibot.comms.CommsChecker
 import com.typesafe.scalalogging.LazyLogging
 import com.arxality.experibot.logging.Loggable
 import org.bson.Document
+import com.arxality.experibot.robots.kilobot.DebugableKilobot
 
 class Position(val x: Int, val y: Int) extends Loggable {
   override def toString: String = s"(x=$x, y=$y)"
@@ -35,7 +36,7 @@ class Position(val x: Int, val y: Int) extends Loggable {
 }
 
 
-class World(generation: Int = 0, robots: Seq[Robot]) 
+class World(generation: Int = 0, robots: Seq[DebugableKilobot]) 
     extends MessageDeliveryCollector with CommsChecker with RobotService with LazyLogging
 {//, toDeliver: Option[Seq[Message]] = None) {
   
@@ -46,7 +47,7 @@ class World(generation: Int = 0, robots: Seq[Robot])
     new World(generation, ready)
   }
   
-  def findRobots(f: (Robot => Boolean)): Seq[Robot] = {
+  def findRobots(f: (DebugableKilobot => Boolean)): Seq[DebugableKilobot] = {
     streamRobots().filter(f)
   }
   
@@ -61,29 +62,29 @@ class World(generation: Int = 0, robots: Seq[Robot])
     new World((generation+1), nextGen)
   }
 
-  def findRobot(id: Int): Option[Robot] = {
+  def findRobot(id: Int): Option[DebugableKilobot] = {
     robots.find(r => id == r.id)
   }
 
-  def mapRobots[T](f: (Robot => T)): Seq[T] = {
+  def mapRobots[T](f: (DebugableKilobot => T)): Seq[T] = {
     ???
   }
 
   //TODO actually stream (and randomise?)
-  def streamRobots(): Seq[Robot] = {
+  def streamRobots(): Seq[DebugableKilobot] = {
     robots
   }
 
   /*
    * Returns all Robots that have either send messages or received them (or both)
    */
-  def deliverMessages(): Seq[Robot] = {
+  def deliverMessages(): Seq[DebugableKilobot] = {
     // TODO Replace with actual streams that wont blow the memory for large worlds
     streamRobots()
       .filter(_.hasMessageToSend)
       .map(r => {
         
-        def lookup(cache: Map[Int,Robot], id: Int): Option[Robot] = {
+        def lookup(cache: Map[Int,DebugableKilobot], id: Int): Option[DebugableKilobot] = {
           cache.get(id).orElse(findRobot(id))
         }
         
@@ -94,7 +95,7 @@ class World(generation: Int = 0, robots: Seq[Robot])
           .flatten.flatten
           
         val deliveryResponses = deliveryManifests
-          .foldLeft((Map[Int,Robot](),Seq[DeliveryResponse]()))((acc,dm) => {
+          .foldLeft((Map[Int,DebugableKilobot](),Seq[DeliveryResponse]()))((acc,dm) => {
             val recipient = lookup(acc._1, dm.recipient)
             recipient.map(r => {
               val raw = r.deliver(this, dm.msg)

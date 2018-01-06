@@ -2,7 +2,6 @@ package com.arxality.experibot.robots.kilobot
 
 import com.arxality.experibot.comms.Message
 import org.bson.Document
-import com.arxality.experibot.simulator.Robot
 import com.arxality.experibot.simulator.World
 import com.arxality.experibot.logging.Loggable
 
@@ -37,7 +36,7 @@ class DebuggableKilobotMessage(override val id: Int,
    * Kilobots just use broadcast, so find everything within comms range and
    * check that.
    */
-  def isFor(w: World, r: Robot): Boolean = {
+  def isFor(w: World, r: DebugableKilobot): Boolean = {
     val recipients = w.findRobot(senderId).map(r => w.inCommsRange(r) )
     recipients.contains(r)
   }
