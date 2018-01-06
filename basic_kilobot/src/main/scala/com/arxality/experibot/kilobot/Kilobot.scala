@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import ch.qos.logback.classic.Level
 
 object Kilobot {
-  val COMMS_RANGE = 1;
+  val COMMS_RANGE = 1.0;
   
   val rand = scala.util.Random
   

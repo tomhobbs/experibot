@@ -39,12 +39,16 @@ class InMemory(generation: Int = 0,
   }
 
   def distanceBetween(a: Option[DebugableKilobot], b: Option[DebugableKilobot]): Double = {
-    0.0
+    (a, b) match {
+      case (None, _) => -1.0
+      case (_, None) => -1.0
+      case (Some(x), Some(y)) => x.pos.diff(y.pos)
+    }
   }
   
   def deliverAllMessages(f: ((DebugableKilobot, Int) => DebugableKilobot)): RobotService = {
     
-    // Nasty var hack
+    // TODO - Refactor the nasty vals out of this
     var deliveredTo = robots.map(r => (r.id, r)).toMap
     var deliveryReceipts = Map[Int, Int]()
     
@@ -78,6 +82,14 @@ class InMemory(generation: Int = 0,
   }
   
   def findRobotsInRange(robots: Seq[DebugableKilobot], id: Int): Seq[DebugableKilobot] = {
-    Seq()
+    val from = robots.find(_.id == id)
+    
+    from.map(f => {
+      robots.filter(r => {
+          r.id != id && DebugableKilobot.areInRange(f, r)
+        })
+    }).getOrElse(Seq())
+    
+
   }
 }

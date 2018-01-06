@@ -48,8 +48,9 @@ class DebugableKilobot(val role: String,
   }
   
   def transmissionSuccess(): DebugableKilobot = {
-    logger.info("transmission_success", this)
-    wrap(kilobot.transmissionSuccess())
+    val next = wrap(kilobot.transmissionSuccess())
+    logger.info("transmission_success", next)
+    next
   }
   
   def toSend(): Option[DebuggableKilobotMessage] = {
@@ -78,4 +79,7 @@ object DebugableKilobot {
     msgIds
   }
   
+  def areInRange(a: DebugableKilobot, b: DebugableKilobot): Boolean = {
+    a.pos.diff(b.pos) <= Kilobot.COMMS_RANGE
+  }
 }
